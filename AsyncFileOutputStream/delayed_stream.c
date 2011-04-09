@@ -48,23 +48,42 @@ typedef struct _stream {
   long volatile open;
 } stream_t;
 
+typedef enum _qi_type {
+  QI_REGULAR,
+  QI_EOF,
+  QI_POISIONPILL
+} qi_type_t;
+
 typedef struct _queue_item {
   struct _queue_item *prev;
   struct _queue_item *next;
 
+  qi_type_t type;
   __int64 offset;
   char *bytes;
   size_t length;
   stream_t *stream;
 } queue_item_t;
 
-queue_item_t *queue_item_create(stream_t *stream, __int64 offset, const char *bytes, size_t length) {
+static queue_item_t *queue_item_create_empty(qi_type_t type) {
   queue_item_t *rv = (queue_item_t *)malloc(sizeof(queue_item_t));
   if (!rv) {
     return rv;
   }
 
   rv->prev = rv->next = NULL;
+  rv->bytes = NULL;
+  rv->stream = NULL;
+  rv->type = type;
+
+  return rv;
+}
+
+static queue_item_t *queue_item_create(stream_t *stream, __int64 offset, const char *bytes, size_t length) {
+  queue_item_t *rv = queue_item_create_empty(QI_REGULAR);
+  if (!rv) {
+    return rv;
+  }
 
   rv->offset = offset;
   rv->bytes = (char*)pool_alloc(stream->pool, length);
@@ -74,24 +93,24 @@ queue_item_t *queue_item_create(stream_t *stream, __int64 offset, const char *by
   }
   memcpy(rv->bytes, bytes, length);
   rv->length = length;
-
   rv->stream = stream;
 
   return rv;
 }
-queue_item_t *queue_item_create_poisonpill() {
-  queue_item_t *rv = (queue_item_t *)malloc(sizeof(queue_item_t));
+static queue_item_t *queue_item_create_poisonpill() {
+  return queue_item_create_empty(QI_POISIONPILL);
+}
+static queue_item_t *queue_item_create_eof(stream_t *stream, __int64 size_hint) {
+  queue_item_t *rv = queue_item_create_empty(QI_EOF);
   if (!rv) {
     return rv;
   }
-  rv->prev = rv->next = NULL;
-  rv->bytes = NULL;
-  rv->length = 0;
-  rv->stream = NULL;
+  rv->offset = size_hint;
+  rv->stream = stream;
 
   return rv;
 }
-void queue_item_destroy(queue_item_t *item) {
+static void queue_item_destroy(queue_item_t *item) {
   if (!item) {
     return;
   }
@@ -110,6 +129,7 @@ typedef struct _queue {
   queue_item_t *back;
   size_t length;
   lock_t lock;
+  HANDLE hWorkAvailable;
 } queue_t;
 
 static queue_t *queue_create() {
@@ -122,6 +142,10 @@ static queue_t *queue_create() {
   rv->front = rv->back = NULL;
   rv->lock = lock_create();
   if (!rv->lock) {
+    abort();
+  }
+  rv->hWorkAvailable = CreateEvent(NULL, FALSE, FALSE, NULL);
+  if (rv->hWorkAvailable == NULL) {
     abort();
   }
 
@@ -148,6 +172,7 @@ out:
   if (item->stream) {
     InterlockedIncrement(&item->stream->pending);
   }
+  SetEvent(queue->hWorkAvailable);
   lock_release(queue->lock);
 }
 static queue_item_t *queue_shift(queue_t *queue) {
@@ -184,12 +209,12 @@ static void queue_destroy(queue_t *queue) {
   }
 
   lock_destroy(queue->lock);
+  CloseHandle(queue->hWorkAvailable);
   free(queue);
 }
 
 typedef struct _libary {
   HANDLE hThread;
-  HANDLE hWorkAvailable;
   queue_t *queue;
 } library_t;
 
@@ -201,13 +226,12 @@ static DWORD WINAPI library_threadproc(LPVOID param) {
   queue_item_t *item;
   LARGE_INTEGER offset;
   DWORD written;
-  while (WaitForSingleObject(library->hWorkAvailable, INFINITE) == WAIT_OBJECT_0) {
+  while (WaitForSingleObject(library->queue->hWorkAvailable, INFINITE) == WAIT_OBJECT_0) {
     for (item = queue_shift(library->queue); item; item = queue_shift(library->queue)) {
       if (!item->length) {
         // poision pill
         return 0;
       }
-
       offset.QuadPart = item->offset;
       if (!SetFilePointerEx(item->stream->fd, offset, NULL, FILE_BEGIN)) {
         InterlockedExchange(&item->stream->open, 0);
@@ -225,10 +249,6 @@ static DWORD WINAPI library_threadproc(LPVOID param) {
 
 void delayed_stream_library_init() {
   glibrary = (library_t *)malloc(sizeof(library_t));
-  glibrary->hWorkAvailable = CreateEvent(NULL, FALSE, FALSE, NULL);
-  if (glibrary->hWorkAvailable == NULL) {
-    abort();
-  }
   glibrary->hThread = CreateThread(NULL, 0, library_threadproc, glibrary, 0, NULL);
   if (glibrary->hThread == NULL) {
     abort();
@@ -240,11 +260,9 @@ void delayed_stream_library_init() {
 }
 void delayed_stream_library_finish() {
   queue_push(glibrary->queue, queue_item_create_poisonpill());
-  SetEvent(glibrary->hWorkAvailable);
   WaitForSingleObject(glibrary->hThread, INFINITE);
   queue_destroy(glibrary->queue);
   CloseHandle(glibrary->hThread);
-  CloseHandle(glibrary->hWorkAvailable);
 }
 
 void* delayed_stream_open(wchar_t *file) {
@@ -303,12 +321,12 @@ int delayed_stream_write(stream_t *stream, __int64 offset, const char *bytes, si
     return 0;
   }
   queue_push(glibrary->queue, item);
-  SetEvent(glibrary->hWorkAvailable);
   return 1;
 }
 
 void delayed_stream_flush(stream_t *stream) {
   while (stream->pending > 0 && WaitForSingleObject(stream->hEvent, INFINITE) == WAIT_OBJECT_0);
+  FlushFileBuffers(stream->fd);
 }
 
 void delayed_stream_close(stream_t *stream) {
@@ -322,7 +340,6 @@ void delayed_stream_close(stream_t *stream) {
   // Wait for all work to finish
   delayed_stream_flush(stream);
 
-  FlushFileBuffers(stream->fd);
   CloseHandle(stream->fd);
   pool_destroy(stream->pool);
   free(stream);
