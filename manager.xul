@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<!--
+/************************************************************************
+ * To the extent possible under law, Nils Maier has waived all copyright
+ * and related or neighboring rights to this work.
+ ************************************************************************/
+-->
+<overlay xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+  <script type="text/javascript"><![CDATA[
+    (function(self) {
+      "use strict";
+      try {
+        const AsyncFileOutputStream = Construct('@downthemall.net/async-file-output-stream;1', 'nsIFileOutputStream', 'init');
+        self.Chunk.prototype.openStream = function(file, at) {
+          let outStream = new AsyncFileOutputStream(file, 0x02 | 0x08, Prefs.permissions, 0);
+          let seekable = outStream.QueryInterface(Ci.nsISeekableStream);
+          seekable.seek(0x00, at);
+          if (this.remaining > 0) {
+            outStream = new BufferedOutputStream(outStream, Math.min(this.remaining, MIN_CHUNK_SIZE * 2));
+          }
+          else {
+            outStream = new BufferedOutputStream(outStream, MIN_CHUNK_SIZE * 2);
+          }
+          return outStream;
+        }
+      }
+      catch (ex) {
+        Components.utils.reportError(ex);
+      }
+    })(this);
+  ]]></script>
+</overlay>
