@@ -17,7 +17,7 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
+			OutputDirectory="$(SolutionDir)/.."
 			IntermediateDirectory="$(ConfigurationName)"
 			ConfigurationType="2"
 			CharacterSet="1"
@@ -60,8 +60,10 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="mozalloc.lib xpcomglue_s.lib xpcom.lib nspr4.lib"
-				AdditionalLibraryDirectories="&quot;E:\xulrunner-sdk\lib&quot;"
+				AdditionalDependencies="mozcrt19.lib mozalloc.lib xpcomglue_s.lib xpcom.lib nspr4.lib plds4.lib"
+				AdditionalLibraryDirectories="&quot;E:\xulrunner-sdk\lib&quot;;&quot;E:\mozilla\mintrayr-2.0-i686-pc-mingw32\dist\lib&quot;"
+				IgnoreAllDefaultLibraries="false"
+				IgnoreDefaultLibraryNames="msvcrt.lib"
 				GenerateDebugInformation="true"
 				TargetMachine="1"
 			/>
@@ -141,6 +143,7 @@
 				AdditionalLibraryDirectories="&quot;E:\xulrunner-sdk\lib&quot;;&quot;E:\mozilla\mintrayr-2.0-i686-pc-mingw32\dist\lib&quot;"
 				GenerateManifest="false"
 				IgnoreDefaultLibraryNames="msvcrt.lib"
+				GenerateDebugInformation="true"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
 				TargetMachine="1"
@@ -231,6 +234,14 @@
 			<File
 				RelativePath=".\dtaIAsyncFileOutputStream.idl"
 				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCMIDLTool"
+					/>
+				</FileConfiguration>
 				<FileConfiguration
 					Name="Release|Win32"
 					ExcludedFromBuild="true"
