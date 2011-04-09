@@ -23,6 +23,7 @@
           }
           return outStream;
         }
+        self.QueueItem.prototype.prealloc = function() false;
       }
       catch (ex) {
         Components.utils.reportError(ex);
