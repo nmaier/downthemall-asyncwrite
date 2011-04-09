@@ -144,6 +144,28 @@ AsyncFileOutputStream::Init(nsIFile* aFile, PRInt32 aIOFlags, PRInt32 aPerm,
   return NS_OK;
 }
 
+/* dtaIAsynFileOutputStream */
+NS_IMETHODIMP
+AsyncFileOutputStream::InitPreallocated(nsIFile* aFile, PRInt64 aTotalSize)
+{
+  NS_ENSURE_TRUE(!mStream, NS_ERROR_ALREADY_INITIALIZED);
+  NS_ENSURE_TRUE(!mClosed, NS_ERROR_ALREADY_INITIALIZED);
+  NS_ENSURE_ARG_POINTER(aFile);
+
+  nsresult rv;
+
+  nsCOMPtr<nsILocalFile> localFile = do_QueryInterface(aFile, &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+  nsString name;
+  rv = localFile->GetTarget(name);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  mStream = delayed_stream_open(name.get(), aTotalSize);
+  if (!mStream) {
+    return NS_ERROR_FILE_ACCESS_DENIED;
+  }
+  return NS_OK;
+}
 
 /* nsISeekableStream */
 NS_IMETHODIMP

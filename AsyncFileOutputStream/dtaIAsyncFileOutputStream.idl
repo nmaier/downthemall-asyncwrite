@@ -37,7 +37,10 @@
 
 #include "nsISupports.idl"
 
+interface nsIFile;
+
 [scriptable, uuid(dc7348d0-62cf-11e0-ae3e-0800200c9a66)]
 interface dtaIAsyncFileOutputStream : nsISupports
 {
+  void initPreallocated(in nsIFile file, in PRInt64 totalSize);
 };
