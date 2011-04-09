@@ -1,0 +1,5 @@
+content dta.delayedwrite .
+overlay chrome://dta/content/dta/manager.xul chrome://dta.delayedwrite/content/manager.xul
+
+interfaces dtaIAsyncFileOutputStream.xpt
+binary-component AsyncFileOutputStream.dll ABI=WINNT_x86-msvc
