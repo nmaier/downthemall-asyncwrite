@@ -10,9 +10,9 @@
     (function(self) {
       "use strict";
       try {
-        const AsyncFileOutputStream = Construct('@downthemall.net/async-file-output-stream;1', 'nsIFileOutputStream', 'init');
+        const AsyncFileOutputStream = Construct('@downthemall.net/async-file-output-stream;1', 'dtaIAsyncFileOutputStream', 'initPreallocated');
         self.Chunk.prototype.openStream = function(file, at) {
-          let outStream = new AsyncFileOutputStream(file, 0x02 | 0x08, Prefs.permissions, 0);
+          let outStream = new AsyncFileOutputStream(file, this.parent.totalSize);
           let seekable = outStream.QueryInterface(Ci.nsISeekableStream);
           seekable.seek(0x00, at);
           if (this.remaining > 0) {
