@@ -125,8 +125,8 @@ NS_IMETHODIMP
 AsyncFileOutputStream::Init(nsIFile* aFile, PRInt32 aIOFlags, PRInt32 aPerm,
                         PRInt32 aBehaviorFlags)
 {
-    NS_ENSURE_TRUE(!mStream, NS_ERROR_ALREADY_INITIALIZED);
-    NS_ENSURE_TRUE(!mClosed, NS_ERROR_ALREADY_INITIALIZED);
+  NS_ENSURE_TRUE(!mStream, NS_ERROR_ALREADY_INITIALIZED);
+  NS_ENSURE_TRUE(!mClosed, NS_ERROR_ALREADY_INITIALIZED);
   NS_ENSURE_ARG_POINTER(aFile);
 
   nsresult rv;
@@ -137,7 +137,7 @@ AsyncFileOutputStream::Init(nsIFile* aFile, PRInt32 aIOFlags, PRInt32 aPerm,
   rv = localFile->GetTarget(name);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  mStream = delayed_stream_open(name.get());
+  mStream = delayed_stream_open(name.get(), -1);
   if (!mStream) {
     return NS_ERROR_FILE_ACCESS_DENIED;
   }

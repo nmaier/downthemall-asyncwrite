@@ -228,13 +228,16 @@ static DWORD WINAPI library_threadproc(LPVOID param) {
   DWORD written;
   while (WaitForSingleObject(library->queue->hWorkAvailable, INFINITE) == WAIT_OBJECT_0) {
     for (item = queue_shift(library->queue); item; item = queue_shift(library->queue)) {
-      if (!item->length) {
-        // poision pill
+      if (item->type == QI_POISIONPILL) {
+        queue_item_destroy(item);
         return 0;
       }
       offset.QuadPart = item->offset;
       if (!SetFilePointerEx(item->stream->fd, offset, NULL, FILE_BEGIN)) {
         InterlockedExchange(&item->stream->open, 0);
+      }
+      else if (item->type == QI_EOF) {
+        SetEndOfFile(item->stream->fd);
       }
       else if (!WriteFile(item->stream->fd, item->bytes, item->length, &written, NULL)) {
         InterlockedExchange(&item->stream->open, 0);
@@ -265,11 +268,16 @@ void delayed_stream_library_finish() {
   CloseHandle(glibrary->hThread);
 }
 
-void* delayed_stream_open(wchar_t *file) {
+void* delayed_stream_open(wchar_t *file, __int64 size_hint) {
   pool_t *pool;
   stream_t *stream;
 
-  pool = pool_create((1<<21));
+  if (size_hint > 0) {
+    pool = pool_create(size_hint > (1<<22) ? (1<<22) : (size_t)size_hint);
+  }
+  else {
+    pool = pool_create((1<<21));
+  }
   if (!pool) {
     return NULL;
   }
@@ -293,6 +301,13 @@ void* delayed_stream_open(wchar_t *file) {
   stream->hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
   if (stream->hEvent == NULL) {
     goto error_he;
+  }
+
+  if (size_hint > 0) {
+    queue_item_t *eof = queue_item_create_eof(stream, size_hint);
+    if (eof) {
+      queue_push(glibrary->queue, eof);
+    }
   }
 
   return stream;
