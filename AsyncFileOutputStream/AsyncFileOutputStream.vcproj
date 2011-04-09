@@ -140,7 +140,7 @@
 				AdditionalDependencies="mozcrt19.lib mozalloc.lib xpcomglue_s.lib xpcom.lib nspr4.lib plds4.lib"
 				AdditionalLibraryDirectories="&quot;E:\xulrunner-sdk\lib&quot;;&quot;E:\mozilla\mintrayr-2.0-i686-pc-mingw32\dist\lib&quot;"
 				GenerateManifest="false"
-				IgnoreAllDefaultLibraries="true"
+				IgnoreDefaultLibraryNames="msvcrt.lib"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
 				TargetMachine="1"
