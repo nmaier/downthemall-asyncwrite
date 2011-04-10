@@ -10,6 +10,12 @@
     (function(self) {
       "use strict";
       try {
+        if (!('@downthemall.net/async-file-output-stream;1' in Cc)) {
+          throw Error("asyncfileoutputstream not registered!");
+        }
+        if (!('openStream' in self.Chunk.prototype)) {
+          throw Error("dta incompatible!");
+        }
         const AsyncFileOutputStream = Construct('@downthemall.net/async-file-output-stream;1', 'dtaIAsyncFileOutputStream', 'initPreallocated');
         self.Chunk.prototype.openStream = function(file, at) {
           let outStream = new AsyncFileOutputStream(file, this.parent.totalSize);
