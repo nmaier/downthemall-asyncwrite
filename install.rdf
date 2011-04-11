@@ -5,7 +5,7 @@
     <em:id>asyncwrite@downthemall.net</em:id>
     <em:name>DownThemAll! Background File Windows Extension</em:name>
     <em:description>Extension to DownThemAll! to allow it to write files to disk in a more efficient and less intrusive way.</em:description>
-    <em:version>0.2alpha</em:version>
+    <em:version>0.3alpha</em:version>
 
     <em:targetPlatform>WINNT_x86-msvc</em:targetPlatform>
     <em:unpack>true</em:unpack>
