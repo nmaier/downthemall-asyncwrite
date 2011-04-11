@@ -179,18 +179,48 @@ static queue_item_t *queue_shift(queue_t *queue) {
   queue_item_t *rv = NULL;
 
   lock_aquire_read(queue->lock);
-  if (!queue->front) {
+  if (!queue->length) {
     goto out;
   }
   lock_release(queue->lock);
   lock_aquire_write(queue->lock);
+
+  /* prefer closed streams */
+  for (rv = queue->front; rv; rv = rv->next) {
+    if (rv->type == QI_REGULAR && rv->stream && !rv->stream->open) {
+      goto unqueue;
+    }
+  }
+
+  /* prefer EOF */
+  for (rv = queue->front; rv; rv = rv->next) {
+    if (rv->type == QI_EOF) {
+      goto unqueue;
+    }
+  }
+
+  /* else pop from the front */
   rv = queue->front;
+
+unqueue:
+  if (!rv) {
+    goto out;
+  }
+
   --queue->length;
   if (!queue->length) {
     queue->front = queue->back = NULL;
   }
+  else if (rv->next && rv->prev) {
+    rv->next->prev = rv->prev;
+    rv->prev->next = rv->next;
+  }
+  else if (rv->prev) {
+    rv->prev->next = NULL;
+  queue->back = rv->prev;
+  }
   else {
-    rv->next->prev = NULL;
+  rv->next->prev = NULL;
     queue->front = rv->next;
   }
   rv->prev = NULL;
@@ -292,7 +322,7 @@ void* delayed_stream_open(wchar_t *file, __int64 size_hint) {
     FILE_SHARE_READ | FILE_SHARE_WRITE,
     NULL,
     OPEN_ALWAYS,
-    FILE_ATTRIBUTE_NORMAL,
+    FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,
     NULL
     );
   if (stream->fd == INVALID_HANDLE_VALUE) {
