@@ -14,6 +14,7 @@
     <em:developer>Nils Maier</em:developer>
 
     <em:iconURL>chrome://dtaicon/content/icon.png</em:iconURL>
+    <em:updateURL>https://code.downthemall.net/asyncwrite/update.rdf</em:updateURL>
 
     <!-- Firefox -->
     <em:targetApplication>
