@@ -3,7 +3,7 @@
   <Description about="urn:mozilla:install-manifest">
 
     <em:id>asyncwrite@downthemall.net</em:id>
-    <em:name>DownThemAll! Background File Windows Extension</em:name>
+    <em:name>DownThemAll! Background File Write</em:name>
     <em:description>Extension to DownThemAll! to allow it to write files to disk in a more efficient and less intrusive way.</em:description>
     <em:version>0.3alpha</em:version>
 
