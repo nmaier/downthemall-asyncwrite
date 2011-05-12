@@ -188,6 +188,14 @@
 				>
 			</File>
 			<File
+				RelativePath=".\event.c"
+				>
+			</File>
+			<File
+				RelativePath=".\event.h"
+				>
+			</File>
+			<File
 				RelativePath=".\lock.c"
 				>
 			</File>

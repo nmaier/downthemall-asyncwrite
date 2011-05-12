@@ -38,13 +38,14 @@
 #include <windows.h>
 
 #include "pool.h"
-#include "lock.h"
 #include "thread.h"
+#include "lock.h"
+#include "event.h"
 
 typedef struct _stream {
   pool_t *pool;
   HANDLE fd;
-  HANDLE hEvent;
+  event_t event;
   long volatile pending;
   long volatile open;
 } stream_t;
@@ -120,7 +121,7 @@ static void queue_item_destroy(queue_item_t *item) {
   }
   if (item->stream) {
     InterlockedDecrement(&item->stream->pending);
-    SetEvent(item->stream->hEvent);
+  event_set(item->stream->event);
   }
   free(item);
 }
@@ -130,7 +131,7 @@ typedef struct _queue {
   queue_item_t *back;
   size_t length;
   lock_t lock;
-  HANDLE hWorkAvailable;
+  event_t workAvailable;
 } queue_t;
 
 static queue_t *queue_create() {
@@ -145,8 +146,8 @@ static queue_t *queue_create() {
   if (!rv->lock) {
     abort();
   }
-  rv->hWorkAvailable = CreateEvent(NULL, FALSE, FALSE, NULL);
-  if (rv->hWorkAvailable == NULL) {
+  rv->workAvailable = event_create();
+  if (rv->workAvailable == NULL) {
     abort();
   }
 
@@ -173,7 +174,7 @@ out:
   if (item->stream) {
     InterlockedIncrement(&item->stream->pending);
   }
-  SetEvent(queue->hWorkAvailable);
+  event_set(queue->workAvailable);
   lock_release(queue->lock);
 }
 static queue_item_t *queue_shift(queue_t *queue) {
@@ -240,7 +241,7 @@ static void queue_destroy(queue_t *queue) {
   }
 
   lock_destroy(queue->lock);
-  CloseHandle(queue->hWorkAvailable);
+  event_destroy(queue->workAvailable);
   free(queue);
 }
 
@@ -257,7 +258,7 @@ static void library_threadproc(void *param) {
   queue_item_t *item;
   LARGE_INTEGER offset;
   DWORD written;
-  while (WaitForSingleObject(library->queue->hWorkAvailable, INFINITE) == WAIT_OBJECT_0) {
+  while (event_wait(library->queue->workAvailable, EVENT_WAIT_INFINITE) == EVENT_RESULT_SUCCESS) {
     for (item = queue_shift(library->queue); item; item = queue_shift(library->queue)) {
       if (item->type == QI_POISIONPILL) {
         queue_item_destroy(item);
@@ -330,8 +331,8 @@ void* delayed_stream_open(wchar_t *file, __int64 size_hint) {
   if (stream->fd == INVALID_HANDLE_VALUE) {
     goto error_cf;
   }
-  stream->hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
-  if (stream->hEvent == NULL) {
+  stream->event = event_create();
+  if (stream->event == NULL) {
     goto error_he;
   }
 
@@ -372,7 +373,7 @@ int delayed_stream_write(stream_t *stream, __int64 offset, const char *bytes, si
 }
 
 void delayed_stream_flush(stream_t *stream) {
-  while (stream->pending > 0 && WaitForSingleObject(stream->hEvent, INFINITE) == WAIT_OBJECT_0);
+  while (stream->pending > 0 && event_wait(stream->event, EVENT_WAIT_INFINITE) == EVENT_RESULT_SUCCESS);
   FlushFileBuffers(stream->fd);
 }
 
@@ -388,6 +389,7 @@ void delayed_stream_close(stream_t *stream) {
   delayed_stream_flush(stream);
 
   CloseHandle(stream->fd);
+  event_destroy(stream->event);
   pool_destroy(stream->pool);
   free(stream);
 }
