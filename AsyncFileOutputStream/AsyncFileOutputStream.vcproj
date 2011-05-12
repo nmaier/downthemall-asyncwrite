@@ -203,6 +203,14 @@
 				RelativePath=".\pool.h"
 				>
 			</File>
+			<File
+				RelativePath=".\thread.c"
+				>
+			</File>
+			<File
+				RelativePath=".\thread.h"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="DLL"

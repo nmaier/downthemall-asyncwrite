@@ -39,6 +39,7 @@
 
 #include "pool.h"
 #include "lock.h"
+#include "thread.h"
 
 typedef struct _stream {
   pool_t *pool;
@@ -244,14 +245,14 @@ static void queue_destroy(queue_t *queue) {
 }
 
 typedef struct _libary {
-  HANDLE hThread;
+  thread_t thread;
   queue_t *queue;
 } library_t;
 
 library_t *glibrary;
 
 
-static DWORD WINAPI library_threadproc(LPVOID param) {
+static void library_threadproc(void *param) {
   library_t *library = (library_t*)param;
   queue_item_t *item;
   LARGE_INTEGER offset;
@@ -260,7 +261,7 @@ static DWORD WINAPI library_threadproc(LPVOID param) {
     for (item = queue_shift(library->queue); item; item = queue_shift(library->queue)) {
       if (item->type == QI_POISIONPILL) {
         queue_item_destroy(item);
-        return 0;
+        return;
       }
       offset.QuadPart = item->offset;
       if (!SetFilePointerEx(item->stream->fd, offset, NULL, FILE_BEGIN)) {
@@ -275,15 +276,15 @@ static DWORD WINAPI library_threadproc(LPVOID param) {
       queue_item_destroy(item);
     }
   }
-
-  // make compiler happy
-  return 0;
 }
 
 void delayed_stream_library_init() {
   glibrary = (library_t *)malloc(sizeof(library_t));
-  glibrary->hThread = CreateThread(NULL, 0, library_threadproc, glibrary, 0, NULL);
-  if (glibrary->hThread == NULL) {
+  if (!glibrary) {
+    abort();
+  }
+  glibrary->thread = thread_create(library_threadproc, glibrary);
+  if (glibrary->thread == NULL) {
     abort();
   }
   glibrary->queue = queue_create();
@@ -293,9 +294,10 @@ void delayed_stream_library_init() {
 }
 void delayed_stream_library_finish() {
   queue_push(glibrary->queue, queue_item_create_poisonpill());
-  WaitForSingleObject(glibrary->hThread, INFINITE);
+  thread_join(glibrary->thread);
+  thread_destroy(glibrary->thread);
   queue_destroy(glibrary->queue);
-  CloseHandle(glibrary->hThread);
+  free(glibrary);
 }
 
 void* delayed_stream_open(wchar_t *file, __int64 size_hint) {
