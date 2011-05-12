@@ -258,7 +258,7 @@ static void library_threadproc(void *param) {
   queue_item_t *item;
   LARGE_INTEGER offset;
   DWORD written;
-  while (event_wait(library->queue->workAvailable, EVENT_WAIT_INFINITE) == EVENT_RESULT_SUCCESS) {
+  while (event_join(library->queue->workAvailable)) {
     for (item = queue_shift(library->queue); item; item = queue_shift(library->queue)) {
       if (item->type == QI_POISIONPILL) {
         queue_item_destroy(item);
@@ -373,7 +373,7 @@ int delayed_stream_write(stream_t *stream, __int64 offset, const char *bytes, si
 }
 
 void delayed_stream_flush(stream_t *stream) {
-  while (stream->pending > 0 && event_wait(stream->event, EVENT_WAIT_INFINITE) == EVENT_RESULT_SUCCESS);
+  while (stream->pending > 0 && event_join(stream->event));
   FlushFileBuffers(stream->fd);
 }
 
