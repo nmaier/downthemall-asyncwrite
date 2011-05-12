@@ -180,6 +180,14 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
+				RelativePath=".\atomic.c"
+				>
+			</File>
+			<File
+				RelativePath=".\atomic.h"
+				>
+			</File>
+			<File
 				RelativePath=".\delayed_stream.c"
 				>
 			</File>

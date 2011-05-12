@@ -37,17 +37,18 @@
 
 #include <windows.h>
 
+#include "atomic.h"
+#include "event.h"
+#include "lock.h"
 #include "pool.h"
 #include "thread.h"
-#include "lock.h"
-#include "event.h"
 
 typedef struct _stream {
   pool_t *pool;
   HANDLE fd;
   event_t event;
-  long volatile pending;
-  long volatile open;
+  atomic_t pending;
+  atomic_t open;
 } stream_t;
 
 typedef enum _qi_type {
@@ -120,8 +121,8 @@ static void queue_item_destroy(queue_item_t *item) {
     pool_free(item->stream->pool, item->bytes);
   }
   if (item->stream) {
-    InterlockedDecrement(&item->stream->pending);
-  event_set(item->stream->event);
+    atomic_decrement(&item->stream->pending);
+    event_set(item->stream->event);
   }
   free(item);
 }
@@ -172,7 +173,7 @@ static void queue_push(queue_t *queue, queue_item_t *item) {
 
 out:
   if (item->stream) {
-    InterlockedIncrement(&item->stream->pending);
+    atomic_increment(&item->stream->pending);
   }
   event_set(queue->workAvailable);
   lock_release(queue->lock);
@@ -219,10 +220,10 @@ unqueue:
   }
   else if (rv->prev) {
     rv->prev->next = NULL;
-  queue->back = rv->prev;
+    queue->back = rv->prev;
   }
   else {
-  rv->next->prev = NULL;
+    rv->next->prev = NULL;
     queue->front = rv->next;
   }
   rv->prev = NULL;
@@ -266,13 +267,13 @@ static void library_threadproc(void *param) {
       }
       offset.QuadPart = item->offset;
       if (!SetFilePointerEx(item->stream->fd, offset, NULL, FILE_BEGIN)) {
-        InterlockedExchange(&item->stream->open, 0);
+        atomic_set(&item->stream->open, 0);
       }
       else if (item->type == QI_EOF) {
         SetEndOfFile(item->stream->fd);
       }
       else if (!WriteFile(item->stream->fd, item->bytes, item->length, &written, NULL)) {
-        InterlockedExchange(&item->stream->open, 0);
+        atomic_set(&item->stream->open, 0);
       }
       queue_item_destroy(item);
     }
@@ -383,7 +384,7 @@ void delayed_stream_close(stream_t *stream) {
   }
 
   // Close the stream
-  InterlockedExchange(&stream->open, 0);
+  atomic_set(&stream->open, 0);
 
   // Wait for all work to finish
   delayed_stream_flush(stream);
