@@ -204,6 +204,14 @@
 				>
 			</File>
 			<File
+				RelativePath=".\file.c"
+				>
+			</File>
+			<File
+				RelativePath=".\file.h"
+				>
+			</File>
+			<File
 				RelativePath=".\lock.c"
 				>
 			</File>

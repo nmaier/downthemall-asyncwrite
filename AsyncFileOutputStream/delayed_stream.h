@@ -37,7 +37,9 @@
 
 #pragma once
 
-#include <windows.h>
+#include "file.h"
+
+typedef void* delayed_stream_t;
 
 #ifdef __cplusplus
 extern "C" {
@@ -45,7 +47,7 @@ extern "C" {
 
 void delayed_stream_library_init();
 void delayed_stream_library_finish();
-void * delayed_stream_open(const wchar_t *file, __int64 size_hint);
+delayed_stream_t delayed_stream_open(file_t file, __int64 size_hint);
 int delayed_stream_write(void *stream, __int64 offset, const char *bytes, size_t length);
 void delayed_stream_flush(void *stream);
 void delayed_stream_close(void *stream);

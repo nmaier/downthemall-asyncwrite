@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <stddef.h>
+
 typedef void pool_t;
 
 pool_t* pool_create(size_t initial_size);

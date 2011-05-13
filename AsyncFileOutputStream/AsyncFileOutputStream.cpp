@@ -133,11 +133,11 @@ AsyncFileOutputStream::Init(nsIFile* aFile, PRInt32 aIOFlags, PRInt32 aPerm,
 
   nsCOMPtr<nsILocalFile> localFile = do_QueryInterface(aFile, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
-  nsString name;
-  rv = localFile->GetTarget(name);
+  PRFileDesc *desc;
+  rv = localFile->OpenNSPRFileDesc(aIOFlags, aPerm, &desc);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  mStream = delayed_stream_open(name.get(), -1);
+  mStream = delayed_stream_open((file_t)desc, -1);
   if (!mStream) {
     return NS_ERROR_FILE_ACCESS_DENIED;
   }
@@ -146,7 +146,7 @@ AsyncFileOutputStream::Init(nsIFile* aFile, PRInt32 aIOFlags, PRInt32 aPerm,
 
 /* dtaIAsynFileOutputStream */
 NS_IMETHODIMP
-AsyncFileOutputStream::InitPreallocated(nsIFile* aFile, PRInt64 aTotalSize)
+AsyncFileOutputStream::InitPreallocated(nsIFile* aFile, PRInt32 aIOFlags, PRInt32 aPerm, PRInt64 aTotalSize)
 {
   NS_ENSURE_TRUE(!mStream, NS_ERROR_ALREADY_INITIALIZED);
   NS_ENSURE_TRUE(!mClosed, NS_ERROR_ALREADY_INITIALIZED);
@@ -156,11 +156,11 @@ AsyncFileOutputStream::InitPreallocated(nsIFile* aFile, PRInt64 aTotalSize)
 
   nsCOMPtr<nsILocalFile> localFile = do_QueryInterface(aFile, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
-  nsString name;
-  rv = localFile->GetTarget(name);
+  PRFileDesc *desc;
+  rv = localFile->OpenNSPRFileDesc(aIOFlags, aPerm, &desc);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  mStream = delayed_stream_open(name.get(), aTotalSize);
+  mStream = delayed_stream_open(desc, aTotalSize);
   if (!mStream) {
     return NS_ERROR_FILE_ACCESS_DENIED;
   }

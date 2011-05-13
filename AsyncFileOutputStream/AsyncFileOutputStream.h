@@ -42,6 +42,7 @@
 #include "xpcom-config.h"
 
 #include "dtaIAsyncFileOutputStream.h"
+#include "delayed_stream.h"
 
 #include "nsIOutputStream.h"
 #include "nsIFileStreams.h"
@@ -67,7 +68,7 @@ public:
 protected:
   PRInt64 mOffset;
   PRInt64 mMaxOffset;
-  void *mStream;
+  delayed_stream_t mStream;
   bool mClosed;
 };
 

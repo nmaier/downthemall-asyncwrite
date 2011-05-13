@@ -35,17 +35,16 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-#include <windows.h>
-
 #include "atomic.h"
 #include "event.h"
+#include "file.h"
 #include "lock.h"
 #include "pool.h"
 #include "thread.h"
 
 typedef struct _stream {
   pool_t *pool;
-  HANDLE fd;
+  file_t fd;
   event_t event;
   atomic_t pending;
   atomic_t open;
@@ -257,22 +256,19 @@ library_t *glibrary;
 static void library_threadproc(void *param) {
   library_t *library = (library_t*)param;
   queue_item_t *item;
-  LARGE_INTEGER offset;
-  DWORD written;
   while (event_join(library->queue->workAvailable)) {
     for (item = queue_shift(library->queue); item; item = queue_shift(library->queue)) {
       if (item->type == QI_POISIONPILL) {
         queue_item_destroy(item);
         return;
       }
-      offset.QuadPart = item->offset;
-      if (!SetFilePointerEx(item->stream->fd, offset, NULL, FILE_BEGIN)) {
+      if (!file_seek(item->stream->fd, item->offset)) {
         atomic_set(&item->stream->open, 0);
       }
       else if (item->type == QI_EOF) {
-        SetEndOfFile(item->stream->fd);
+        file_seteof(item->stream->fd);
       }
-      else if (!WriteFile(item->stream->fd, item->bytes, item->length, &written, NULL)) {
+      else if (!file_write(item->stream->fd, item->bytes, item->length)) {
         atomic_set(&item->stream->open, 0);
       }
       queue_item_destroy(item);
@@ -320,16 +316,8 @@ void* delayed_stream_open(wchar_t *file, __int64 size_hint) {
   stream->pool = pool;
   stream->open = 1;
   stream->pending = 0;
-  stream->fd = CreateFile(
-    file,
-    GENERIC_WRITE,
-    FILE_SHARE_READ | FILE_SHARE_WRITE,
-    NULL,
-    OPEN_ALWAYS,
-    FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,
-    NULL
-    );
-  if (stream->fd == INVALID_HANDLE_VALUE) {
+  stream->fd = file;
+  if (!stream->fd) {
     goto error_cf;
   }
   stream->event = event_create();
@@ -347,7 +335,7 @@ void* delayed_stream_open(wchar_t *file, __int64 size_hint) {
   return stream;
 
 error_he:
-  CloseHandle(stream->fd);
+  file_close(stream->fd);
 
 error_cf:
   free(stream);
@@ -375,7 +363,7 @@ int delayed_stream_write(stream_t *stream, __int64 offset, const char *bytes, si
 
 void delayed_stream_flush(stream_t *stream) {
   while (stream->pending > 0 && event_join(stream->event));
-  FlushFileBuffers(stream->fd);
+  file_flush(stream->fd);
 }
 
 void delayed_stream_close(stream_t *stream) {
@@ -389,7 +377,7 @@ void delayed_stream_close(stream_t *stream) {
   // Wait for all work to finish
   delayed_stream_flush(stream);
 
-  CloseHandle(stream->fd);
+  file_close(stream->fd);
   event_destroy(stream->event);
   pool_destroy(stream->pool);
   free(stream);
