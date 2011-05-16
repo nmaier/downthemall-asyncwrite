@@ -35,12 +35,9 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-#include "atomic.h"
-#include "event.h"
-#include "file.h"
-#include "lock.h"
-#include "pool.h"
-#include "thread.h"
+#include <string.h>
+
+#include "pr.h"
 
 typedef struct _stream {
   pool_t *pool;
@@ -250,7 +247,7 @@ typedef struct _libary {
   queue_t *queue;
 } library_t;
 
-library_t *glibrary;
+library_t *glibrary = NULL;
 
 
 static void library_threadproc(void *param) {
@@ -277,6 +274,10 @@ static void library_threadproc(void *param) {
 }
 
 void delayed_stream_library_init() {
+  if (glibrary) {
+    return;
+  }
+
   glibrary = (library_t *)malloc(sizeof(library_t));
   if (!glibrary) {
     abort();
@@ -291,11 +292,15 @@ void delayed_stream_library_init() {
   }
 }
 void delayed_stream_library_finish() {
+  if (!glibrary) {
+    return;
+  }
   queue_push(glibrary->queue, queue_item_create_poisonpill());
   thread_join(glibrary->thread);
   thread_destroy(glibrary->thread);
   queue_destroy(glibrary->queue);
   free(glibrary);
+  glibrary = NULL;
 }
 
 void* delayed_stream_open(wchar_t *file, __int64 size_hint) {

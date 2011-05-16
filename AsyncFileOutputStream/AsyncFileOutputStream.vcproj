@@ -180,14 +180,6 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath=".\atomic.c"
-				>
-			</File>
-			<File
-				RelativePath=".\atomic.h"
-				>
-			</File>
-			<File
 				RelativePath=".\delayed_stream.c"
 				>
 			</File>
@@ -196,43 +188,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\event.c"
+				RelativePath=".\pr.c"
 				>
 			</File>
 			<File
-				RelativePath=".\event.h"
-				>
-			</File>
-			<File
-				RelativePath=".\file.c"
-				>
-			</File>
-			<File
-				RelativePath=".\file.h"
-				>
-			</File>
-			<File
-				RelativePath=".\lock.c"
-				>
-			</File>
-			<File
-				RelativePath=".\lock.h"
-				>
-			</File>
-			<File
-				RelativePath=".\pool.c"
-				>
-			</File>
-			<File
-				RelativePath=".\pool.h"
-				>
-			</File>
-			<File
-				RelativePath=".\thread.c"
-				>
-			</File>
-			<File
-				RelativePath=".\thread.h"
+				RelativePath=".\pr.h"
 				>
 			</File>
 		</Filter>

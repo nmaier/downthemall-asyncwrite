@@ -36,8 +36,10 @@
  * ***** END LICENSE BLOCK ***** */
 
 #pragma once
+#ifndef delayed_stream_h_
+#define delayed_stream_h_
 
-#include "file.h"
+#include "pr.h"
 
 typedef void* delayed_stream_t;
 
@@ -55,3 +57,5 @@ void delayed_stream_close(void *stream);
 #ifdef __cplusplus
 } // extern "C"
 #endif
+
+#endif /* delayed_stream_h_ */
