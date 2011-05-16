@@ -43,17 +43,63 @@
 #include "nsAlgorithm.h"
 #include "nsStringAPI.h"
 
+namespace {
+  /* Ugly hack to guard the delayed_stream_library
+   * This isn't the only global object in mozilla land
+   * so whatever :p
+   *
+   * The GC/CC will also keep the asyncstream instances around for a bit
+   * so even if a user loads files one by one little init/finish circles
+   * are expected. Because we're tracking the instance count, not the
+   * open count.
+   */
+  class LibraryLoader {
+  private:
+    int refcnt_;
+    PRLock *lock_;
+  public:
+    LibraryLoader() : refcnt_(0) {
+      lock_ = PR_NewLock();
+    }
+    void ref() {
+      PR_Lock(lock_);
+      if (!refcnt_) {
+        delayed_stream_library_init();
+      }
+      refcnt_++;
+      PR_Unlock(lock_);
+    }
+  void unref() {
+      PR_Lock(lock_);
+      if (--refcnt_ == 0) {
+        delayed_stream_library_finish();
+      }
+      PR_Unlock(lock_);
+  }
+    ~LibraryLoader() {
+      if (refcnt_) {
+        delayed_stream_library_finish();
+        refcnt_ = 0;
+      }
+      PR_DestroyLock(lock_);
+    }
+  };
+  static LibraryLoader _loader;
+}
+
 AsyncFileOutputStream::AsyncFileOutputStream()
   : mOffset(0),
   mMaxOffset(0),
   mStream(0),
   mClosed(false)
 {
+  _loader.ref();
 }
 
 AsyncFileOutputStream::~AsyncFileOutputStream()
 {
   Close();
+  _loader.unref();
 }
 
 NS_IMPL_THREADSAFE_ISUPPORTS4(AsyncFileOutputStream, dtaIAsyncFileOutputStream, nsIOutputStream, nsIFileOutputStream, nsISeekableStream)
