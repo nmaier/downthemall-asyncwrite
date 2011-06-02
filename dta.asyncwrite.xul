@@ -1,4 +1,5 @@
 <?xml version="1.0"?>
+<?xml-stylesheet href="chrome://dta.asyncwrite/skin/" type="text/css" ?>
 <!--
 /************************************************************************
  * To the extent possible under law, Nils Maier has waived all copyright
@@ -6,18 +7,22 @@
  ************************************************************************/
 -->
 <overlay xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+  <windowdragbox id="footer">
+    <statusbarpanel class="statusbarpanel-iconic" id="asyncwrite" insertbefore="preferences"/>
+  </windowdragbox>
   <script type="text/javascript"><![CDATA[
-    (function(self) {
+    addEventListener("load", function asyncwrite_load() {
       "use strict";
+      removeEventListener("load", asyncwrite_load, false);
       try {
         if (!('@downthemall.net/async-file-output-stream;1' in Cc)) {
           throw Error("asyncfileoutputstream not registered!");
         }
-        if (!('openStream' in self.Chunk.prototype)) {
+        if (!('openStream' in window.Chunk.prototype)) {
           throw Error("dta incompatible!");
         }
         const AsyncFileOutputStream = Construct('@downthemall.net/async-file-output-stream;1', 'dtaIAsyncFileOutputStream', 'initPreallocated');
-        self.Chunk.prototype.openStream = function(file, at) {
+        window.Chunk.prototype.openStream = function(file, at) {
           let outStream = new AsyncFileOutputStream(file, 0x02 | 0x08, Prefs.permissions, this.parent.totalSize);
           let seekable = outStream.QueryInterface(Ci.nsISeekableStream);
           seekable.seek(0x00, at);
@@ -29,11 +34,12 @@
           }
           return outStream;
         }
-        self.QueueItem.prototype.prealloc = function() false;
+        window.QueueItem.prototype.prealloc = function() false;
       }
       catch (ex) {
+        $("asyncwrite").setAttribute("disabled", "true");
         Components.utils.reportError(ex);
       }
-    })(this);
+    }, false);
   ]]></script>
 </overlay>

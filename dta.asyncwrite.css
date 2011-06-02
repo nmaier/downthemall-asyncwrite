@@ -1,0 +1,9 @@
+@namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
+
+statusbarpanel#asyncwrite {
+  list-style-image: url(async.png);
+  -moz-image-region: rect(0px, 16px, 16px, 0px);
+}
+statusbarpanel#asyncwrite[disabled] {
+  -moz-image-region: rect(0px, 32px, 16px, 16px);
+}

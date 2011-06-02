@@ -4,7 +4,8 @@ from zipfile import ZipFile, ZIP_STORED, ZIP_DEFLATED
 
 resources = [
     "install.rdf", "chrome.manifest",
-    "*.xul",
+    "*.xul", "*.css",
+    "*.png",
     "*.dll",
     "*.xpt",
     "COPYING"

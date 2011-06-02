@@ -1,5 +1,6 @@
-content dta.delayedwrite .
-overlay chrome://dta/content/dta/manager.xul chrome://dta.delayedwrite/content/manager.xul
+content dta.asyncwrite .
+skin dta.asyncwrite classic/1.0 .
+overlay chrome://dta/content/dta/manager.xul chrome://dta.asyncwrite/content/
 
 interfaces dtaIAsyncFileOutputStream.xpt
 binary-component AsyncFileOutputStream.dll ABI=WINNT_x86-msvc
