@@ -117,8 +117,10 @@ static void queue_item_destroy(queue_item_t *item) {
     pool_free(item->stream->pool, item->bytes);
   }
   if (item->stream) {
+    event_enter(item->stream->event);
     atomic_decrement(&item->stream->pending);
     event_set(item->stream->event);
+    event_leave(item->stream->event);
   }
   free(item);
 }
@@ -168,10 +170,16 @@ static void queue_push(queue_t *queue, queue_item_t *item) {
   queue->length++;
 
 out:
+  event_enter(queue->workAvailable);
   if (item->stream) {
+  event_enter(item->stream->event);
     atomic_increment(&item->stream->pending);
+  event_set(item->stream->event);
+  event_leave(item->stream->event);
   }
   event_set(queue->workAvailable);
+  event_leave(queue->workAvailable);
+
   lock_release(queue->lock);
 }
 static queue_item_t *queue_shift(queue_t *queue) {
@@ -253,7 +261,11 @@ library_t *glibrary = NULL;
 static void library_threadproc(void *param) {
   library_t *library = (library_t*)param;
   queue_item_t *item;
-  while (event_join(library->queue->workAvailable)) {
+  for (;;) {
+    event_enter(library->queue->workAvailable);
+    event_join(library->queue->workAvailable);
+    event_leave(library->queue->workAvailable);
+
     for (item = queue_shift(library->queue); item; item = queue_shift(library->queue)) {
       if (item->type == QI_POISIONPILL) {
         queue_item_destroy(item);
@@ -367,7 +379,9 @@ int delayed_stream_write(stream_t *stream, __int64 offset, const char *bytes, si
 }
 
 void delayed_stream_flush(stream_t *stream) {
+  event_enter(stream->event);
   while (stream->pending > 0 && event_join(stream->event));
+  event_leave(stream->event);
   file_flush(stream->fd);
 }
 

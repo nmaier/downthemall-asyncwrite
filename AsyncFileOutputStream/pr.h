@@ -19,8 +19,10 @@ long atomic_set(atomic_t *value, atomic_t newvalue);
 typedef void* event_t;
 
 event_t event_create();
+void event_enter(event_t event);
 int event_join(event_t event);
 void event_set(event_t event);
+void event_leave(event_t event);
 void event_destroy(event_t event);
 
 

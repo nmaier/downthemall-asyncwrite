@@ -36,18 +36,19 @@ long atomic_set(atomic_t *value, atomic_t newvalue) {
 event_t event_create() {
   return (event_t)PR_NewMonitor();
 }
-
+void event_enter(event_t event) {
+  PR_EnterMonitor((PRMonitor*)event);
+}
 int event_join(event_t event) {
   PRStatus rv;
-  PR_EnterMonitor((PRMonitor*)event);
   rv = PR_Wait((PRMonitor*)event, PR_INTERVAL_NO_TIMEOUT);
-  PR_ExitMonitor((PRMonitor*)event);
   return rv == PR_SUCCESS ? 1 : 0;
 }
 
 void event_set(event_t event) {
-  PR_EnterMonitor((PRMonitor*)event);
   PR_Notify((PRMonitor*)event);
+}
+void event_leave(event_t event) {
   PR_ExitMonitor((PRMonitor*)event);
 }
 
@@ -68,30 +69,30 @@ void file_seteof(file_t file) {
   SetEndOfFile((HANDLE)PR_FileDesc2NativeHandle((PRFileDesc*)file));
 
 #elif defined(XP_UNIX) && defined(HAVE_TRUNCATE64)
-	FILE *osfd = (FILE*)PR_FileDesc2NativeHandle((PRFileDesc*)file);
-	off64_t pos;
+  FILE *osfd = (FILE*)PR_FileDesc2NativeHandle((PRFileDesc*)file);
+  off64_t pos;
 
-	if (!osfd) {
-		return;
-	}
-	pos = ftello64(osfd);
-	if (pos < 0) {
-		return;
-	}
-	ftruncate64(osfd, pos);
+  if (!osfd) {
+    return;
+  }
+  pos = ftello64(osfd);
+  if (pos < 0) {
+    return;
+  }
+  ftruncate64(osfd, pos);
 
 #elif defined(XP_UNIX)
-	FILE *osfd = (FILE*)PR_FileDesc2NativeHandle((PRFileDesc*)file);
-	off_t pos;
+  FILE *osfd = (FILE*)PR_FileDesc2NativeHandle((PRFileDesc*)file);
+  off_t pos;
 
-	if (!osfd) {
-		return;
-	}
-	pos = ftello(osfd);
-	if (pos < 0) {
-		return;
-	}
-	ftruncate(osfd, pos);
+  if (!osfd) {
+    return;
+  }
+  pos = ftello(osfd);
+  if (pos < 0) {
+    return;
+  }
+  ftruncate(osfd, pos);
 
 #else
 #error not implemented
