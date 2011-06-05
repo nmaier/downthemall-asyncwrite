@@ -61,7 +61,9 @@ int file_seek(file_t file, __int64 offset) {
 }
 
 int file_write(file_t file, void *buffer, int amount) {
-  return PR_Write((PRFileDesc*)file, buffer, amount) == amount;
+  int rv = PR_Write((PRFileDesc*)file, buffer, amount) == amount;
+  file_flush(file);
+  return rv;
 }
 
 void file_seteof(file_t file) {

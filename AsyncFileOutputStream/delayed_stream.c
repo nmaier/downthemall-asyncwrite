@@ -379,9 +379,11 @@ int delayed_stream_write(stream_t *stream, __int64 offset, const char *bytes, si
 }
 
 void delayed_stream_flush(stream_t *stream) {
-  event_enter(stream->event);
-  while (stream->pending > 0 && event_join(stream->event));
-  event_leave(stream->event);
+  if (stream->pending > 0) {
+    event_enter(stream->event);
+    while (stream->pending > 0 && event_join(stream->event));
+    event_leave(stream->event);
+  }
   file_flush(stream->fd);
 }
 
