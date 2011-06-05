@@ -36,6 +36,7 @@
  * ***** END LICENSE BLOCK ***** */
 
 #include <string.h>
+#include <prtypes.h>
 
 #include "pr.h"
 
@@ -58,7 +59,7 @@ typedef struct _queue_item {
   struct _queue_item *next;
 
   qi_type_t type;
-  __int64 offset;
+  PRInt64 offset;
   char *bytes;
   size_t length;
   stream_t *stream;
@@ -78,7 +79,7 @@ static queue_item_t *queue_item_create_empty(qi_type_t type) {
   return rv;
 }
 
-static queue_item_t *queue_item_create(stream_t *stream, __int64 offset, const char *bytes, size_t length) {
+static queue_item_t *queue_item_create(stream_t *stream, PRInt64 offset, const char *bytes, size_t length) {
   queue_item_t *rv = queue_item_create_empty(QI_REGULAR);
   if (!rv) {
     return rv;
@@ -99,7 +100,7 @@ static queue_item_t *queue_item_create(stream_t *stream, __int64 offset, const c
 static queue_item_t *queue_item_create_poisonpill() {
   return queue_item_create_empty(QI_POISIONPILL);
 }
-static queue_item_t *queue_item_create_eof(stream_t *stream, __int64 size_hint) {
+static queue_item_t *queue_item_create_eof(stream_t *stream, PRInt64 size_hint) {
   queue_item_t *rv = queue_item_create_empty(QI_EOF);
   if (!rv) {
     return rv;
@@ -317,7 +318,7 @@ void delayed_stream_library_finish() {
   glibrary = NULL;
 }
 
-void* delayed_stream_open(wchar_t *file, __int64 size_hint) {
+void* delayed_stream_open(wchar_t *file, PRInt64 size_hint) {
   pool_t *pool;
   stream_t *stream;
 
@@ -362,7 +363,7 @@ error_cf:
   return NULL;
 }
 
-int delayed_stream_write(stream_t *stream, __int64 offset, const char *bytes, size_t length) {
+int delayed_stream_write(stream_t *stream, PRInt64 offset, const char *bytes, size_t length) {
   queue_item_t *item;
 
   if (!stream || !bytes || !length) {

@@ -219,20 +219,20 @@ AsyncFileOutputStream::Seek(PRInt32 whence, PRInt64 offset)
 {
   switch (whence) {
     case NS_SEEK_SET:
-      mOffset = NS_MAX(offset, (__int64)0);
+      mOffset = NS_MAX(offset, (PRInt64)0);
       break;
     case NS_SEEK_CUR:
-      mOffset = NS_MAX(mOffset + offset, (__int64)0);
+      mOffset = NS_MAX(mOffset + offset, (PRInt64)0);
       break;
     case NS_SEEK_END:
-      mOffset = NS_MAX(mMaxOffset + offset, (__int64)0);
+      mOffset = NS_MAX(mMaxOffset + offset, (PRInt64)0);
       break;
 
     default:
       NS_NOTREACHED("whence");
       return NS_ERROR_INVALID_ARG;
   }
-  mMaxOffset = NS_MAX(mOffset, (__int64)0);
+  mMaxOffset = NS_MAX(mOffset, (PRInt64)0);
   return NS_OK;
 }
 

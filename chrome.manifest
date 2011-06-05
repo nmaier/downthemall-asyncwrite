@@ -4,3 +4,4 @@ overlay chrome://dta/content/dta/manager.xul chrome://dta.asyncwrite/content/
 
 interfaces dtaIAsyncFileOutputStream.xpt
 binary-component AsyncFileOutputStream.dll ABI=WINNT_x86-msvc
+binary-component libAsyncFileOutputStream-x86_64.so ABI=Linux_x86_64-gcc3

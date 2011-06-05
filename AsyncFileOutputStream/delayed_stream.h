@@ -39,6 +39,7 @@
 #ifndef delayed_stream_h_
 #define delayed_stream_h_
 
+#include <prtypes.h>
 #include "pr.h"
 
 typedef void* delayed_stream_t;
@@ -49,8 +50,8 @@ extern "C" {
 
 void delayed_stream_library_init();
 void delayed_stream_library_finish();
-delayed_stream_t delayed_stream_open(file_t file, __int64 size_hint);
-int delayed_stream_write(void *stream, __int64 offset, const char *bytes, size_t length);
+delayed_stream_t delayed_stream_open(file_t file, PRInt64 size_hint);
+int delayed_stream_write(void *stream, PRInt64 offset, const char *bytes, size_t length);
 void delayed_stream_flush(void *stream);
 void delayed_stream_close(void *stream);
 

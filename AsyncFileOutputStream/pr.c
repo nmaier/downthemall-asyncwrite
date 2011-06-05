@@ -10,6 +10,7 @@
 #elif defined(XP_UNIX)
 #include <unistd.h>
 #include <sys/types.h>
+#include <stdio.h>
 #endif
 
 #include <pratom.h>
@@ -56,7 +57,7 @@ void event_destroy(event_t event) {
   PR_DestroyMonitor((PRMonitor*)event);
 }
 
-int file_seek(file_t file, __int64 offset) {
+int file_seek(file_t file, PRInt64 offset) {
   return PR_Seek64((PRFileDesc*)file, offset, PR_SEEK_SET) == offset;
 }
 
@@ -70,34 +71,17 @@ void file_seteof(file_t file) {
 #if defined(XP_WIN)
   SetEndOfFile((HANDLE)PR_FileDesc2NativeHandle((PRFileDesc*)file));
 
-#elif defined(XP_UNIX) && defined(HAVE_TRUNCATE64)
-  FILE *osfd = (FILE*)PR_FileDesc2NativeHandle((PRFileDesc*)file);
-  off64_t pos;
-
-  if (!osfd) {
-    return;
-  }
-  pos = ftello64(osfd);
-  if (pos < 0) {
-    return;
-  }
-  ftruncate64(osfd, pos);
-
 #elif defined(XP_UNIX)
-  FILE *osfd = (FILE*)PR_FileDesc2NativeHandle((PRFileDesc*)file);
-  off_t pos;
-
-  if (!osfd) {
+  PRInt64 offset = PR_Seek64((PRFileDesc*)file, 0, SEEK_CUR);
+ 
+  if (offset < 1) {
     return;
   }
-  pos = ftello(osfd);
-  if (pos < 0) {
-    return;
-  }
-  ftruncate(osfd, pos);
+  ftruncate(PR_FileDesc2NativeHandle((PRFileDesc*)file), offset);
 
 #else
 #error not implemented
+
 #endif
 }
 
