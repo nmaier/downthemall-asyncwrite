@@ -70,12 +70,12 @@ BEGIN
         BLOCK "000004b0"
         BEGIN
             VALUE "FileDescription", "DownThemAll! AsyncFileOutputStream XPCOM Component"
-            VALUE "FileVersion", "0, 4, 0, 0"
+            VALUE "FileVersion", "0, 7, 0, 0"
             VALUE "InternalName", "AFOS"
             VALUE "LegalCopyright", "Copyright (C) 2011 Nils Maier"
             VALUE "OriginalFilename", "AsyncFileOutputStream.dll"
             VALUE "ProductName", "DownThemAll!"
-            VALUE "ProductVersion", "0, 4, 0, 0"
+            VALUE "ProductVersion", "0, 7, 0, 0"
         END
     END
     BLOCK "VarFileInfo"
