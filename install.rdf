@@ -8,6 +8,7 @@
     <em:version>0.6b</em:version>
 
     <em:targetPlatform>WINNT_x86-msvc</em:targetPlatform>
+    <em:targetPlatform>Linux_x86-gcc3</em:targetPlatform>
     <em:targetPlatform>Linux_x86_64-gcc3</em:targetPlatform>
     <em:unpack>true</em:unpack>
 
