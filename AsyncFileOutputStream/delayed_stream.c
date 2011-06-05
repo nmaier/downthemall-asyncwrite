@@ -154,6 +154,7 @@ static queue_t *queue_create() {
 }
 
 static void queue_push(queue_t *queue, queue_item_t *item) {
+  event_enter(queue->workAvailable);
   lock_aquire_write(queue->lock);
 
   if (!queue->back) {
@@ -170,17 +171,18 @@ static void queue_push(queue_t *queue, queue_item_t *item) {
   queue->length++;
 
 out:
-  event_enter(queue->workAvailable);
+  lock_release(queue->lock);
+
   if (item->stream) {
-  event_enter(item->stream->event);
+    event_enter(item->stream->event);
     atomic_increment(&item->stream->pending);
-  event_set(item->stream->event);
-  event_leave(item->stream->event);
+    event_set(item->stream->event);
+    event_leave(item->stream->event);
   }
+
   event_set(queue->workAvailable);
   event_leave(queue->workAvailable);
 
-  lock_release(queue->lock);
 }
 static queue_item_t *queue_shift(queue_t *queue) {
   queue_item_t *rv = NULL;
@@ -294,12 +296,12 @@ void delayed_stream_library_init() {
   if (!glibrary) {
     abort();
   }
-  glibrary->thread = thread_create(library_threadproc, glibrary);
-  if (glibrary->thread == NULL) {
-    abort();
-  }
   glibrary->queue = queue_create();
   if (!glibrary->queue) {
+    abort();
+  }
+  glibrary->thread = thread_create(library_threadproc, glibrary);
+  if (glibrary->thread == NULL) {
     abort();
   }
 }
