@@ -6,7 +6,7 @@ resources = [
     "install.rdf", "chrome.manifest",
     "*.xul", "*.css",
     "*.png",
-    "*.dll", "lib*.so",
+    "*.dll", "lib*.so", "lib*.dylib",
     "*.xpt",
     "COPYING"
     ]

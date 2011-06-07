@@ -6,3 +6,4 @@ interfaces dtaIAsyncFileOutputStream.xpt
 binary-component AsyncFileOutputStream.dll ABI=WINNT_x86-msvc
 binary-component libAsyncFileOutputStream-i686.so ABI=Linux_x86-gcc3
 binary-component libAsyncFileOutputStream-x86_64.so ABI=Linux_x86_64-gcc3
+binary-component libAsyncFileOutputStream-i386.dylib ABI=Darwin_x86-gcc3
