@@ -30,8 +30,8 @@ The code now supports Win and *nix incl. Darwin. Other platforms likely only hav
 Currently the following binaries are pre-built and within the repository:
 
 * Windows 32 (MSVC9+PGO)
-* Linux x86 (gcc-4.4)
-* Linux x86_64 (gcc-4.4)
+* Linux x86 (gcc-4.5)
+* Linux x86_64 (gcc-4.5)
 * Darwin x86 (gcc-4.0.1; Leopard)
 
 Code
