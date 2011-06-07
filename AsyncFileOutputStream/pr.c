@@ -17,7 +17,6 @@
 #include <prmon.h>
 #include <prio.h>
 #include <private/pprio.h>
-#include <prrwlock.h>
 #include <prthread.h>
 
 #include <plarena.h>
@@ -34,27 +33,25 @@ long atomic_set(atomic_t *value, atomic_t newvalue) {
   return PR_AtomicSet((PRInt32*)value, (PRInt32)newvalue);
 }
 
-event_t event_create() {
-  return (event_t)PR_NewMonitor();
+monitor_t monitor_create() {
+  return (monitor_t)PR_NewMonitor();
 }
-void event_enter(event_t event) {
-  PR_EnterMonitor((PRMonitor*)event);
+void monitor_enter(monitor_t monitor) {
+  PR_EnterMonitor((PRMonitor*)monitor);
 }
-int event_join(event_t event) {
+int monitor_join(monitor_t monitor) {
   PRStatus rv;
-  rv = PR_Wait((PRMonitor*)event, PR_INTERVAL_NO_TIMEOUT);
+  rv = PR_Wait((PRMonitor*)monitor, PR_INTERVAL_NO_TIMEOUT);
   return rv == PR_SUCCESS ? 1 : 0;
 }
-
-void event_set(event_t event) {
-  PR_Notify((PRMonitor*)event);
+void monitor_set(monitor_t monitor) {
+  PR_Notify((PRMonitor*)monitor);
 }
-void event_leave(event_t event) {
-  PR_ExitMonitor((PRMonitor*)event);
+void monitor_leave(monitor_t monitor) {
+  PR_ExitMonitor((PRMonitor*)monitor);
 }
-
-void event_destroy(event_t event) {
-  PR_DestroyMonitor((PRMonitor*)event);
+void monitor_destroy(monitor_t monitor) {
+  PR_DestroyMonitor((PRMonitor*)monitor);
 }
 
 int file_seek(file_t file, PRInt64 offset) {
@@ -73,7 +70,7 @@ void file_seteof(file_t file) {
 
 #elif defined(XP_UNIX)
   PRInt64 offset = PR_Seek64((PRFileDesc*)file, 0, SEEK_CUR);
- 
+
   if (offset < 1) {
     return;
   }
@@ -91,22 +88,6 @@ void file_flush(file_t file) {
 
 void file_close(file_t file) {
   PR_Close((PRFileDesc*)file);
-}
-
-lock_t lock_create() {
-  return PR_NewRWLock(PR_RWLOCK_RANK_NONE, "dta lock");
-}
-void lock_aquire_read(lock_t lock) {
-  PR_RWLock_Rlock((PRRWLock*)lock);
-}
-void lock_aquire_write(lock_t lock) {
-  PR_RWLock_Wlock((PRRWLock*)lock);
-}
-void lock_release(lock_t lock) {
-  PR_RWLock_Unlock((PRRWLock*)lock);
-}
-void lock_destroy(lock_t lock) {
-  PR_DestroyRWLock((PRRWLock*)lock);
 }
 
 pool_t* pool_create(size_t initial_size) {

@@ -43,7 +43,7 @@
 typedef struct _stream {
   pool_t *pool;
   file_t fd;
-  event_t event;
+  monitor_t monitor;
   atomic_t pending;
   atomic_t open;
 } stream_t;
@@ -117,21 +117,22 @@ static void queue_item_destroy(queue_item_t *item) {
   if (item->bytes) {
     pool_free(item->stream->pool, item->bytes);
   }
-  if (item->stream) {
-    event_enter(item->stream->event);
-    atomic_decrement(&item->stream->pending);
-    event_set(item->stream->event);
-    event_leave(item->stream->event);
-  }
   free(item);
+}
+static void queue_item_destroy_stream(queue_item_t *item) {
+  monitor_t monitor = item->stream->monitor;
+  monitor_enter(monitor);
+  --item->stream->pending;
+  queue_item_destroy(item);
+  monitor_set(monitor);
+  monitor_leave(monitor);
 }
 
 typedef struct _queue {
   queue_item_t *front;
   queue_item_t *back;
   size_t length;
-  lock_t lock;
-  event_t workAvailable;
+  monitor_t workAvailable;
 } queue_t;
 
 static queue_t *queue_create() {
@@ -142,11 +143,7 @@ static queue_t *queue_create() {
 
   rv->length = 0;
   rv->front = rv->back = NULL;
-  rv->lock = lock_create();
-  if (!rv->lock) {
-    abort();
-  }
-  rv->workAvailable = event_create();
+  rv->workAvailable = monitor_create();
   if (rv->workAvailable == NULL) {
     abort();
   }
@@ -155,8 +152,10 @@ static queue_t *queue_create() {
 }
 
 static void queue_push(queue_t *queue, queue_item_t *item) {
-  event_enter(queue->workAvailable);
-  lock_aquire_write(queue->lock);
+  monitor_enter(queue->workAvailable);
+  if (item->stream) {
+  monitor_enter(item->stream->monitor);
+  }
 
   if (!queue->back) {
     queue->back = queue->front = item;
@@ -172,49 +171,35 @@ static void queue_push(queue_t *queue, queue_item_t *item) {
   queue->length++;
 
 out:
-  lock_release(queue->lock);
-
   if (item->stream) {
-    event_enter(item->stream->event);
-    atomic_increment(&item->stream->pending);
-    event_set(item->stream->event);
-    event_leave(item->stream->event);
+  ++item->stream->pending;
+  monitor_set(item->stream->monitor);
+  monitor_leave(item->stream->monitor);
   }
-
-  event_set(queue->workAvailable);
-  event_leave(queue->workAvailable);
-
+  monitor_set(queue->workAvailable);
+  monitor_leave(queue->workAvailable);
 }
 static queue_item_t *queue_shift(queue_t *queue) {
-  queue_item_t *rv = NULL;
+  queue_item_t *rv, *i;
 
-  lock_aquire_read(queue->lock);
-  if (!queue->length) {
-    goto out;
-  }
-  lock_release(queue->lock);
-  lock_aquire_write(queue->lock);
-
-  /* prefer closed streams */
-  for (rv = queue->front; rv; rv = rv->next) {
-    if (rv->type == QI_REGULAR && rv->stream && !rv->stream->open) {
-      goto unqueue;
-    }
+  monitor_enter(queue->workAvailable);
+  while (!queue->length) {
+  monitor_join(queue->workAvailable);
   }
 
-  /* prefer EOF */
-  for (rv = queue->front; rv; rv = rv->next) {
-    if (rv->type == QI_EOF) {
-      goto unqueue;
-    }
-  }
-
-  /* else pop from the front */
+  /* if there is nothing better, then pop front */
   rv = queue->front;
 
-unqueue:
-  if (!rv) {
-    goto out;
+  for (i = queue->front; i; i = i->next) {
+    /* prefer closed streams */
+    if (i->type == QI_REGULAR && i->stream && !i->stream->open) {
+      rv = i;
+      break;
+    }
+    /* prefer EOF */
+    if (i->type == QI_EOF) {
+      rv = i;
+    }
   }
 
   --queue->length;
@@ -236,20 +221,17 @@ unqueue:
   rv->prev = NULL;
   rv->next = NULL;
 
-out:
-  lock_release(queue->lock);
+  monitor_leave(queue->workAvailable);
   return rv;
 }
 
 static void queue_destroy(queue_t *queue) {
   queue_item_t *i;
 
-  while ((i = queue_shift(queue)) != NULL) {
-    queue_item_destroy(i);
+  for (i = queue->front; i; i = i->next) {
+  queue_item_destroy(i);
   }
-
-  lock_destroy(queue->lock);
-  event_destroy(queue->workAvailable);
+  monitor_destroy(queue->workAvailable);
   free(queue);
 }
 
@@ -264,27 +246,22 @@ library_t *glibrary = NULL;
 static void library_threadproc(void *param) {
   library_t *library = (library_t*)param;
   queue_item_t *item;
-  for (;;) {
-    event_enter(library->queue->workAvailable);
-    event_join(library->queue->workAvailable);
-    event_leave(library->queue->workAvailable);
-
-    for (item = queue_shift(library->queue); item; item = queue_shift(library->queue)) {
-      if (item->type == QI_POISIONPILL) {
-        queue_item_destroy(item);
-        return;
-      }
-      if (!file_seek(item->stream->fd, item->offset)) {
-        atomic_set(&item->stream->open, 0);
-      }
-      else if (item->type == QI_EOF) {
-        file_seteof(item->stream->fd);
-      }
-      else if (!file_write(item->stream->fd, item->bytes, item->length)) {
-        atomic_set(&item->stream->open, 0);
-      }
+  for (item = queue_shift(library->queue); item; item = queue_shift(library->queue)) {
+    if (item->type == QI_POISIONPILL) {
       queue_item_destroy(item);
+      return;
     }
+
+    if (!file_seek(item->stream->fd, item->offset)) {
+      atomic_set(&item->stream->open, 0);
+    }
+    else if (item->type == QI_EOF) {
+      file_seteof(item->stream->fd);
+    }
+    else if (!file_write(item->stream->fd, item->bytes, item->length)) {
+      atomic_set(&item->stream->open, 0);
+    }
+    queue_item_destroy_stream(item);
   }
 }
 
@@ -318,7 +295,7 @@ void delayed_stream_library_finish() {
   glibrary = NULL;
 }
 
-void* delayed_stream_open(wchar_t *file, PRInt64 size_hint) {
+void* delayed_stream_open(file_t file, PRInt64 size_hint) {
   pool_t *pool;
   stream_t *stream;
 
@@ -340,8 +317,8 @@ void* delayed_stream_open(wchar_t *file, PRInt64 size_hint) {
   if (!stream->fd) {
     goto error_cf;
   }
-  stream->event = event_create();
-  if (stream->event == NULL) {
+  stream->monitor = monitor_create();
+  if (stream->monitor == NULL) {
     goto error_he;
   }
 
@@ -382,12 +359,11 @@ int delayed_stream_write(stream_t *stream, PRInt64 offset, const char *bytes, si
 }
 
 void delayed_stream_flush(stream_t *stream) {
-  if (stream->pending > 0) {
-    event_enter(stream->event);
-    while (stream->pending > 0 && event_join(stream->event));
-    event_leave(stream->event);
+  monitor_enter(stream->monitor);
+  while (stream->pending > 0) {
+    monitor_join(stream->monitor);
   }
-  file_flush(stream->fd);
+  monitor_leave(stream->monitor);
 }
 
 void delayed_stream_close(stream_t *stream) {
@@ -397,12 +373,10 @@ void delayed_stream_close(stream_t *stream) {
 
   // Close the stream
   atomic_set(&stream->open, 0);
-
-  // Wait for all work to finish
   delayed_stream_flush(stream);
 
   file_close(stream->fd);
-  event_destroy(stream->event);
+  monitor_destroy(stream->monitor);
   pool_destroy(stream->pool);
   free(stream);
 }

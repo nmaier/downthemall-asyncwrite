@@ -9,6 +9,11 @@
 
 #include <stdlib.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 typedef long volatile atomic_t;
 
 long atomic_increment(atomic_t *value);
@@ -16,14 +21,14 @@ long atomic_decrement(atomic_t *value);
 long atomic_set(atomic_t *value, atomic_t newvalue);
 
 
-typedef void* event_t;
+typedef void* monitor_t;
 
-event_t event_create();
-void event_enter(event_t event);
-int event_join(event_t event);
-void event_set(event_t event);
-void event_leave(event_t event);
-void event_destroy(event_t event);
+monitor_t monitor_create();
+void monitor_enter(monitor_t monitor);
+int monitor_join(monitor_t monitor);
+void monitor_set(monitor_t monitor);
+void monitor_leave(monitor_t monitor);
+void monitor_destroy(monitor_t monitor);
 
 
 typedef void* file_t /* PRFileDesc* */;
@@ -33,15 +38,6 @@ int file_write(file_t file, void *buffer, int amount);
 void file_seteof(file_t file);
 void file_flush(file_t file);
 void file_close(file_t file);
-
-
-typedef void * lock_t;
-
-lock_t lock_create();
-void lock_aquire_read(lock_t lock);
-void lock_aquire_write(lock_t lock);
-void lock_release(lock_t lock);
-void lock_destroy(lock_t lock);
 
 
 typedef void pool_t;
@@ -58,5 +54,10 @@ typedef void (*thread_proc_t)(void *param);
 thread_t thread_create(thread_proc_t start, void *param);
 int thread_join(thread_t thread);
 void thread_destroy(thread_t thread);
+
+
+#ifdef __cplusplus
+} // extern "C"
+#endif
 
 #endif /* pr_h_ */
