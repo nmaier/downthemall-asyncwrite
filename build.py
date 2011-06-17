@@ -6,8 +6,7 @@ resources = [
     "install.rdf", "chrome.manifest",
     "*.xul", "*.css",
     "*.png",
-    "*.dll", "lib*.so", "lib*.dylib",
-    "*.xpt",
+    "platform/*", "platform/*/*",
     "COPYING"
     ]
 destination = "dta_asyncwrite.xpi"

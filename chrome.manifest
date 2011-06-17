@@ -2,8 +2,18 @@ content dta.asyncwrite .
 skin dta.asyncwrite classic/1.0 .
 overlay chrome://dta/content/dta/manager.xul chrome://dta.asyncwrite/content/
 
-interfaces dtaIAsyncFileOutputStream.xpt
-binary-component AsyncFileOutputStream.dll ABI=WINNT_x86-msvc
-binary-component libAsyncFileOutputStream-i686.so ABI=Linux_x86-gcc3
-binary-component libAsyncFileOutputStream-x86_64.so ABI=Linux_x86_64-gcc3
-binary-component libAsyncFileOutputStream-i386.dylib ABI=Darwin_x86-gcc3
+interfaces platform/dtaIAsyncFileOutputStream.xpt
+
+# Firefox 4+5
+binary-component platform/5/AsyncFileOutputStream-i686.dll abi=WINNT_x86-msvc appversion<5.*
+binary-component platform/5/AsyncFileOutputStream-x86_64.dll abi=WINNT_x86_64-msvc appversion<5.*
+binary-component platform/5/libAsyncFileOutputStream-i686.so abi=Linux_x86-gcc3 appversion<5.*
+binary-component platform/5/libAsyncFileOutputStream-x86_64.so abi=Linux_x86_64-gcc3 appversion<5.*
+binary-component platform/5/libAsyncFileOutputStream-i386.dylib abi=Darwin_x86-gcc3 appversion<5.*
+
+# Firefox 6
+binary-component platform/6/AsyncFileOutputStream-i686.dll abi=WINNT_x86-msvc appversion>5.*
+binary-component platform/6/AsyncFileOutputStream-x86_64.dll abi=WINNT_x86_64-msvc appversion>5.*
+binary-component platform/6/libAsyncFileOutputStream-i686.so abi=Linux_x86-gcc3 appversion>5.*
+binary-component platform/6/libAsyncFileOutputStream-x86_64.so abi=Linux_x86_64-gcc3 appversion>5.*
+binary-component platform/6/libAsyncFileOutputStream-i386.dylib abi=Darwin_x86-gcc3 appversion>5.*

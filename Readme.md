@@ -25,14 +25,15 @@ Status
 The current code is currently in an early beta state and will only work against Firefox 4 and 5/DownThemAll! 2.1 alpha (trunk).
 
 It should be considered an experiment, that might later be abandoned again (if background thread I/O in Firefox Chromeworkers eventually arrives), or might be polished and make it into the final product, although we so far tried to be a JS-only extension. JS-only fallbacks are possible, so it's not that much of an issue.
-The code now supports Win and *nix incl. Darwin. Other platforms likely only have to implement (or omit) `pr.c:file_seteof()`.
+The code now supports Win and Unix incl. Darwin. Other platforms likely only have to implement (or omit) `pr.c:file_seteof()`.
 
 Currently the following binaries are pre-built and within the repository:
 
-* Windows 32 (MSVC9+PGO)
+* Windows 32 (MSVC9)
+* Windows 64 (MSVC9)
 * Linux x86 (gcc-4.5)
 * Linux x86_64 (gcc-4.5)
-* Darwin x86 (gcc-4.0.1; Leopard)
+* Darwin x86 (gcc-4.2; Leopard)
 
 Code
 ---
