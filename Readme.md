@@ -69,7 +69,9 @@ A Visual Studio project is provided, but you need to adjust the path to the xulr
 
 Also, if you'd like to link against the mozcrt19, then you need a working import library. Otherwise, remove the ignored msvcrt.lib from the linker flags again and use the static (not DLL) crt.
 
-Building on *nix
+Additionally, you can use build in a mozilla tree (see Building on Unix).
+
+Building on Unix
 ---
 
 While SDK builds were an option, it is usually safer to build within a mozilla tree. Hence only this build variant is supported.
